@@ -43,7 +43,43 @@ namespace PhysioDynamik_Prototype_1
         public string Specialty { get; set; }
         public List<Appointment> AppointmentList { get; set; }
         public bool PaymentConfirmed { get; set; }
+        public List<AvailabilitySlot> AvailabilitySlots { get; set; }
+
+        // Method to add an availability slot to a therapist's schedule
+        public bool AddAvailability(AvailabilitySlot slot)
+        {
+            // Check if the time slot is already in the list
+            foreach (var existingSlot in AvailabilitySlots)
+            {
+                if (existingSlot.StartTime == slot.StartTime && existingSlot.EndTime == slot.EndTime)
+                {
+                    Console.WriteLine($"Failure: The slot from {slot.StartTime} to {slot.EndTime} is already added.");
+                    return false;
+                }
+            }
+
+            AvailabilitySlots.Add(slot);
+            Console.WriteLine($"Success: Slot from {slot.StartTime} to {slot.EndTime} added.");
+            return true;
+        }
+
     }
+
+
+    public class AvailabilitySlot
+    {
+        public DateTime StartTime { get; set; }
+        public DateTime EndTime { get; set; }
+
+        // Constructor for creating a new AvailabilitySlot
+        public AvailabilitySlot(DateTime startTime, DateTime endTime)
+        {
+            StartTime = startTime;
+            EndTime = endTime;
+        }
+    }    
+
+
 
     public class Appointment
     {
@@ -83,6 +119,63 @@ namespace PhysioDynamik_Prototype_1
         };
 
         public List<Appointment> Appointments { get; set; } = new List<Appointment>();
+        public List<Therapist> Therapists { get; set; } = new List<Therapist>();
+
+    // Add a therapist to the system
+        public void AddTherapist(Therapist therapist)
+        {
+            Therapists.Add(therapist);
+            Console.WriteLine($"Success: Therapist {therapist.Name} added to the system.");
+        }
+   
+    // Upload therapist's availability slots
+        public void UploadTherapistAvailabilities(int therapistID, List<AvailabilitySlot> availabilities)
+        {
+            var therapist = Therapists.Find(t => t.TherapistID == therapistID);
+            if (therapist != null)
+            {
+                foreach (var slot in availabilities)
+                {
+                    therapist.AddAvailability(slot);
+                }
+            }
+            else
+            {
+                Console.WriteLine($"Failure: Therapist with ID {therapistID} not found.");
+            }
+        }
+
+    // Display all therapists and their availability slots
+        public void DisplayTherapistAvailabilities()
+        {
+            foreach (var therapist in Therapists)
+            {
+                Console.WriteLine($"Therapist: {therapist.Name}");
+                Console.WriteLine("Availability Slots:");
+                foreach (var slot in therapist.AvailabilitySlots)
+                {
+                    Console.WriteLine($"- {slot.StartTime} to {slot.EndTime}");
+                }
+            }
+        }
+
+ // Check if a slot is available for a given therapist
+        public bool CheckSlotAvailability(int therapistID, string slot)
+        {
+            var therapist = Therapists.Find(t => t.TherapistID == therapistID);
+            if (therapist != null)
+            {
+                // Check if the therapist is available for this time slot
+                foreach (var availability in therapist.AvailabilitySlots)
+                {
+                    if (availability.StartTime.ToString("h:mm tt") == slot)
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
 
         // Constructor to initialize DatabaseHelper
         public SystemClass()
