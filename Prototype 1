@@ -13,6 +13,62 @@ public class Patient
     public List<Appointment> AppointmentList { get; set; }
     private List<string> PaymentMethods { get; set; }
     public MedicalRecord MedicalRecord { get; set; }
+
+// Extending Patient Class with static method to fetch data
+    public partial class Patient
+    {
+        public void ViewPatientInformation()
+        {
+            Console.WriteLine($"Name: {Name}");
+            Console.WriteLine($"Patient ID: {PatientID}");
+            Console.WriteLine($"Email: {Email}");
+            Console.WriteLine($"Phone: {PhoneNumber}");
+            Console.WriteLine($"Date of Birth: {DateOfBirth.ToShortDateString()}");
+        }
+
+        public static Patient GetPatientByID(int id)
+        {
+            DatabaseHelper dbHelper = new DatabaseHelper();
+            Patient patient = null;
+
+            using (var connection = dbHelper.GetConnection())
+            {
+                try
+                {
+                    connection.Open();
+                    string query = "SELECT * FROM Patients WHERE PatientID = @PatientID";
+                    using (var cmd = new MySqlCommand(query, connection))
+                    {
+                        cmd.Parameters.AddWithValue("@PatientID", id);
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                patient = new Patient
+                                {
+                                    PatientID = reader.GetInt32("PatientID"),
+                                    Name = reader.GetString("Name"),
+                                    Email = reader.GetString("Email"),
+                                    PhoneNumber = reader.GetString("PhoneNumber"),
+                                    DateOfBirth = reader.GetDateTime("DateOfBirth")
+                                };
+
+                                // Fetch associated medical record
+                                patient.MedicalRecord = MedicalRecord.GetMedicalRecordByPatientID(id);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error fetching patient: {ex.Message}");
+                }
+            }
+
+            return patient;
+        }
+    }
+
 }
 
 public class Therapist
@@ -159,6 +215,39 @@ public class SystemClass
     {
         DatabaseHelper = new DatabaseHelper();
     }
+
+// Method to run the system and fetch patient details
+        public void RunSystem()
+        {
+            Console.WriteLine("Welcome to PhysioDynamik System");
+            Console.WriteLine("Enter Patient ID to view details: ");
+            int patientID = int.Parse(Console.ReadLine() ?? "0");
+
+            // Step 1: Fetch Patient Information
+            Patient patient = Patient.GetPatientByID(patientID);
+
+            if (patient != null)
+            {
+                // Step 2: Display Patient Information
+                Console.WriteLine("\n--- Patient Details ---");
+                patient.ViewPatientInformation();
+
+                // Step 3: Fetch and Display Medical Record
+                if (patient.MedicalRecord != null)
+                {
+                    Console.WriteLine("\n--- Medical Record ---");
+                    patient.MedicalRecord.ViewMedicalRecord();
+                }
+                else
+                {
+                    Console.WriteLine("No medical record found for this patient.");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Patient not found.");
+            }
+        }
 }
 
 public class Receipt
@@ -288,6 +377,59 @@ public class MedicalRecord
     public int PatientID { get; set; }
     public string Report { get; set; }
     public List<DateTime> TreatmentHistory { get; set; }
+
+ // Extending MedicalRecord Class with static method to fetch data
+    public partial class MedicalRecord
+    {
+        public void ViewMedicalRecord()
+        {
+            Console.WriteLine($"Report: {Report}");
+            Console.WriteLine("Treatment History:");
+            foreach (var date in TreatmentHistory)
+            {
+                Console.WriteLine($"- {date.ToShortDateString()}");
+            }
+        }
+
+        public static MedicalRecord GetMedicalRecordByPatientID(int patientID)
+        {
+            DatabaseHelper dbHelper = new DatabaseHelper();
+            MedicalRecord record = null;
+
+            using (var connection = dbHelper.GetConnection())
+            {
+                try
+                {
+                    connection.Open();
+                    string query = "SELECT * FROM MedicalRecords WHERE PatientID = @PatientID";
+                    using (var cmd = new MySqlCommand(query, connection))
+                    {
+                        cmd.Parameters.AddWithValue("@PatientID", patientID);
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                record = new MedicalRecord
+                                {
+                                    PatientID = reader.GetInt32("PatientID"),
+                                    Report = reader.GetString("Report"),
+                                    TreatmentHistory = new List<DateTime>() // Placeholder for treatment dates
+                                };
+
+                                // Optionally, fetch treatment history if stored in another table
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error fetching medical record: {ex.Message}");
+                }
+            }
+
+            return record;
+        }
+    }
 }
 
 public class Assessment
