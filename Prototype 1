@@ -15,6 +15,55 @@ namespace PhysioDynamik_Prototype_1
         private List<string> PaymentMethods { get; set; }
         public MedicalRecord MedicalRecord { get; set; }
 
+// Method for patient registration
+public static void RegisterPatient(SystemClass system)
+ {
+        Console.WriteLine("=== Patient Registration ===");
+
+        // Collect patient details
+        Console.Write("Enter your First Name: ");
+        string firstName = Console.ReadLine();
+
+        Console.Write("Enter your Last Name: ");
+        string lastName = Console.ReadLine();
+
+        Console.Write("Enter your Email: ");
+        string email = Console.ReadLine();
+
+        Console.Write("Create a Password: ");
+        string password = Console.ReadLine();
+
+        Console.Write("Confirm Password: ");
+        string confirmPassword = Console.ReadLine();
+
+        Console.Write("Enter your Phone Number: ");
+        string phone = Console.ReadLine();
+
+        Console.Write("Enter your Date of Birth (yyyy-mm-dd): ");
+        if (!DateTime.TryParse(Console.ReadLine(), out DateTime dob))
+        {
+            Console.WriteLine("Invalid date format. Try again.");
+            return;
+        }
+ // Validate and create account
+        if (Account.CreateAccount(email, password, confirmPassword, firstName, lastName, phone, dob))
+        {
+            // Add patient to system
+            var patient = new Patient
+            {
+                Name = $"{firstName} {lastName}",
+                Email = email,
+                PhoneNumber = phone,
+                DateOfBirth = dob
+            };
+
+            system.AddPatient(patient);
+            Console.WriteLine("Patient account successfully registered!");
+        }
+        else
+        {
+            Console.WriteLine("Failed to register patient.");
+
         // Method for selecting an appointment
         public void SelectAppointment(SystemClass system, string slot, int therapistID)
         {
@@ -88,7 +137,7 @@ namespace PhysioDynamik_Prototype_1
             Console.WriteLine($"Date of Birth: {DateOfBirth.ToShortDateString()}");
         }
     }
-
+}
     public class Therapist
     {
         public int TherapistID { get; set; }
@@ -362,4 +411,97 @@ public class Assessment
     private string Description { get; set; }
     private string Status { get; set; }
     private string Result { get; set; }
+}
+
+public class ConfirmationEmail
+{
+    // Attributes
+    public int PatientID { get; set; } // The ID of the patient
+    public string Email { get; set; } // The email address to send the confirmation to
+    public string Message { get; set; } // The confirmation message
+
+    // Constructor
+    public ConfirmationEmail(int patientID, string email, string message)
+    {
+        PatientID = patientID;
+        Email = email;
+        Message = message;
+    }
+
+    // Method: Send Confirmation Email
+    public void Send()
+    {
+        if (string.IsNullOrWhiteSpace(Email))
+        {
+            Console.WriteLine("Invalid email address. Cannot send confirmation email.");
+            return;
+        }
+
+        // Simulate sending an email
+        Console.WriteLine($"Sending confirmation email to {Email}...");
+        Console.WriteLine($"Patient ID: {PatientID}");
+        Console.WriteLine($"Message: {Message}");
+        Console.WriteLine("Confirmation email sent successfully!");
+    }
+}
+public class RegistrationForm
+{
+    // Attributes
+    public int FormID { get; set; } // Unique identifier for the form
+    public Dictionary<string, string> PatientDetails { get; set; } // Stores patient information as key-value pairs
+
+    // Constructor
+    public RegistrationForm(int formID)
+    {
+        FormID = formID;
+        PatientDetails = new Dictionary<string, string>();
+    }
+
+    // Method: Add Patient Details
+    public void AddPatientDetail(string key, string value)
+    {
+        if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(value))
+        {
+            Console.WriteLine("Key and value cannot be empty.");
+            return;
+        }
+
+        if (PatientDetails.ContainsKey(key))
+        {
+            Console.WriteLine($"Key '{key}' already exists. Updating value...");
+            PatientDetails[key] = value; // Update the existing value
+        }
+        else
+        {
+            PatientDetails.Add(key, value); // Add new key-value pair
+        }
+    }
+
+    // Method: Validate Information
+    public bool ValidateInformation()
+    {
+        string[] requiredFields = { "Name", "Email", "PhoneNumber", "DateOfBirth" };
+
+        foreach (var field in requiredFields)
+        {
+            if (!PatientDetails.ContainsKey(field) || string.IsNullOrWhiteSpace(PatientDetails[field]))
+            {
+                Console.WriteLine($"Missing or invalid information for: {field}");
+                return false;
+            }
+        }
+
+        Console.WriteLine("All patient information is valid.");
+        return true;
+    }
+
+    // Method: Display Form Details
+    public void DisplayFormDetails()
+    {
+        Console.WriteLine($"Registration Form ID: {FormID}");
+        foreach (var detail in PatientDetails)
+        {
+            Console.WriteLine($"{detail.Key}: {detail.Value}");
+        }
+    }
 }
