@@ -34,6 +34,59 @@ namespace PhysioDynamik_Prototype_1
                 Console.WriteLine("Selected slot is not available.");
             }
         }
+
+        // Fetch a patient by ID
+        public static Patient GetPatientByID(int id)
+        {
+            Patient patient = null;
+            string connectionString = "Server=localhost;Database=PhysioDynamikDB;Uid=root;Pwd=password;";
+
+            using (var connection = new MySqlConnection(connectionString))
+            {
+                try
+                {
+                    connection.Open();
+                    string query = "SELECT * FROM Patients WHERE PatientID = @PatientID";
+                    using (var cmd = new MySqlCommand(query, connection))
+                    {
+                        cmd.Parameters.AddWithValue("@PatientID", id);
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                patient = new Patient
+                                {
+                                    PatientID = reader.GetInt32("PatientID"),
+                                    Name = reader.GetString("Name"),
+                                    Email = reader.GetString("Email"),
+                                    PhoneNumber = reader.GetString("PhoneNumber"),
+                                    DateOfBirth = reader.GetDateTime("DateOfBirth")
+                                };
+
+                                // Fetch associated medical record
+                                patient.MedicalRecord = MedicalRecord.GetMedicalRecordByPatientID(id);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error fetching patient: {ex.Message}");
+                }
+            }
+
+            return patient;
+        }
+
+        // View patient information
+        public void ViewPatientInformation()
+        {
+            Console.WriteLine($"Name: {Name}");
+            Console.WriteLine($"Patient ID: {PatientID}");
+            Console.WriteLine($"Email: {Email}");
+            Console.WriteLine($"Phone: {PhoneNumber}");
+            Console.WriteLine($"Date of Birth: {DateOfBirth.ToShortDateString()}");
+        }
     }
 
     public class Therapist
@@ -62,9 +115,7 @@ namespace PhysioDynamik_Prototype_1
             Console.WriteLine($"Success: Slot from {slot.StartTime} to {slot.EndTime} added.");
             return true;
         }
-
     }
-
 
     public class AvailabilitySlot
     {
@@ -77,9 +128,7 @@ namespace PhysioDynamik_Prototype_1
             StartTime = startTime;
             EndTime = endTime;
         }
-    }    
-
-
+    }
 
     public class Appointment
     {
@@ -112,7 +161,6 @@ namespace PhysioDynamik_Prototype_1
     public class SystemClass
     {
         public int SystemID { get; set; }
-        public DatabaseHelper DatabaseHelper { get; set; }
         public List<string> AvailableSlots { get; set; } = new List<string>
         {
             "9:00 AM", "10:00 AM", "11:00 AM", "1:00 PM", "2:00 PM"
@@ -121,14 +169,14 @@ namespace PhysioDynamik_Prototype_1
         public List<Appointment> Appointments { get; set; } = new List<Appointment>();
         public List<Therapist> Therapists { get; set; } = new List<Therapist>();
 
-    // Add a therapist to the system
+        // Add a therapist to the system
         public void AddTherapist(Therapist therapist)
         {
             Therapists.Add(therapist);
             Console.WriteLine($"Success: Therapist {therapist.Name} added to the system.");
         }
-   
-    // Upload therapist's availability slots
+
+        // Upload therapist's availability slots
         public void UploadTherapistAvailabilities(int therapistID, List<AvailabilitySlot> availabilities)
         {
             var therapist = Therapists.Find(t => t.TherapistID == therapistID);
@@ -145,7 +193,7 @@ namespace PhysioDynamik_Prototype_1
             }
         }
 
-    // Display all therapists and their availability slots
+        // Display all therapists and their availability slots
         public void DisplayTherapistAvailabilities()
         {
             foreach (var therapist in Therapists)
@@ -159,13 +207,12 @@ namespace PhysioDynamik_Prototype_1
             }
         }
 
- // Check if a slot is available for a given therapist
+        // Check if a slot is available for a given therapist
         public bool CheckSlotAvailability(int therapistID, string slot)
         {
             var therapist = Therapists.Find(t => t.TherapistID == therapistID);
             if (therapist != null)
             {
-                // Check if the therapist is available for this time slot
                 foreach (var availability in therapist.AvailabilitySlots)
                 {
                     if (availability.StartTime.ToString("h:mm tt") == slot)
@@ -175,12 +222,6 @@ namespace PhysioDynamik_Prototype_1
                 }
             }
             return false;
-        }
-
-        // Constructor to initialize DatabaseHelper
-        public SystemClass()
-        {
-            DatabaseHelper = new DatabaseHelper();
         }
 
         // Display available slots
@@ -223,63 +264,35 @@ namespace PhysioDynamik_Prototype_1
                 Console.WriteLine($"ID: {appointment.AppointmentID}, Date: {appointment.Date}, Status: {appointment.Status}");
             }
         }
-    }
 
-    public class Homework
-    {
-        public int HomeworkID { get; set; }
-        public int ClientID { get; set; }
-        public int TherapistID { get; set; }
-        public DateTime DueDate { get; set; }
-        public string SubmissionStatus { get; set; }
-    }
-
-    public class Resource
-    {
-        public int ResourceID { get; set; }
-        public int TherapistID { get; set; }
-        public int ClientID { get; set; }
-        public string ResourceType { get; set; }
-        public DateTime DateGiven { get; set; }
-    }
-
-    public class Feedback
-    {
-        public int FeedbackID { get; set; }
-        public int HomeworkID { get; set; }
-        public int TherapistID { get; set; }
-        public int ClientID { get; set; }
-        public DateTime DateGiven { get; set; }
-    }
-
-    public class RegistrationForm
-    {
-        public int FormID { get; set; }
-    }
-
-    public class Receptionist
-    {
-        public int ReceptionistID { get; set; }
-        public string Name { get; set; }
-        public bool PaymentVerified { get; set; }
-    }
-
-    public class PaymentGateway
-    {
-        public int MethodType { get; set; }
-        public string AccountNumber { get; set; }
-        public string CardHolderName { get; set; }
-        public DateTime ExpirationDate { get; set; }
-
-        public bool ProcessTransaction(decimal amount)
+        // Run system to fetch and display patient and medical record details
+        public void RunSystem()
         {
-            Console.WriteLine($"Processing transaction of {amount:C} for cardholder {CardHolderName}");
-            return true;
-        }
+            Console.WriteLine("Welcome to PhysioDynamik System");
+            Console.WriteLine("Enter Patient ID to view details: ");
+            int patientID = int.Parse(Console.ReadLine() ?? "0");
 
-        public bool ValidatePayment()
-        {
-            return DateTime.Now < ExpirationDate;
+            Patient patient = Patient.GetPatientByID(patientID);
+
+            if (patient != null)
+            {
+                Console.WriteLine("\n--- Patient Details ---");
+                patient.ViewPatientInformation();
+
+                if (patient.MedicalRecord != null)
+                {
+                    Console.WriteLine("\n--- Medical Record ---");
+                    patient.MedicalRecord.ViewMedicalRecord();
+                }
+                else
+                {
+                    Console.WriteLine("No medical record found for this patient.");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Patient not found.");
+            }
         }
     }
 
@@ -288,13 +301,65 @@ namespace PhysioDynamik_Prototype_1
         public int PatientID { get; set; }
         public string Report { get; set; }
         public List<DateTime> TreatmentHistory { get; set; }
-    }
 
-    public class Assessment
-    {
-        private int ClientID { get; set; }
-        private string Description { get; set; }
-        private string Status { get; set; }
-        private string Result { get; set; }
+        public static MedicalRecord GetMedicalRecordByPatientID(int patientID)
+        {
+            MedicalRecord record = null;
+            string connectionString = "Server=localhost;Database=PhysioDynamikDB;Uid=root;Pwd=password;";
+
+            using (var connection = new MySqlConnection(connectionString))
+            {
+                try
+                {
+                    connection.Open();
+                    string query = "SELECT * FROM MedicalRecords WHERE PatientID = @PatientID";
+                    using (var cmd = new MySqlCommand(query, connection))
+                    {
+                        cmd.Parameters.AddWithValue("@PatientID", patientID);
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                record = new MedicalRecord
+                                {
+                                    PatientID = reader.GetInt32("PatientID"),
+                                    Report = reader.GetString("Report")
+                                };
+
+                                record.TreatmentHistory = new List<DateTime>
+                                {
+                                    DateTime.Now.AddDays(-10),
+                                    DateTime.Now.AddDays(-5)
+                                };
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error fetching medical record: {ex.Message}");
+                }
+            }
+
+            return record;
+        }
+
+        public void ViewMedicalRecord()
+        {
+            Console.WriteLine($"Report: {Report}");
+            Console.WriteLine("Treatment History:");
+            foreach (var date in TreatmentHistory)
+            {
+                Console.WriteLine($"- {date.ToShortDateString()}");
+            }
+        }
     }
+}
+
+public class Assessment
+{
+    private int ClientID { get; set; }
+    private string Description { get; set; }
+    private string Status { get; set; }
+    private string Result { get; set; }
 }
